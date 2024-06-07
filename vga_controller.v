@@ -7,9 +7,9 @@ module vga_controller(
     output reg [3:0] green,
     output reg [3:0] blue,
     input [3:0] spaceship_angle,
-    input [31:0] enemy_positions,  // 8 enemies with 4-bit positions
-    input [31:0] enemy_types,      // 8 enemies with 4-bit types
-    input [31:0] enemy_health      // 8 enemies with 4-bit health
+    input [31:0] enemy_positions,
+    input [31:0] enemy_types,
+    input [31:0] enemy_health
 );
 
     // VGA timing parameters
@@ -18,6 +18,7 @@ module vga_controller(
     parameter H_SYNC_PULSE = 96;
     parameter H_BACK_PORCH = 48;
     parameter H_TOTAL = 800;
+
     parameter V_VISIBLE_AREA = 480;
     parameter V_FRONT_PORCH = 10;
     parameter V_SYNC_PULSE = 2;
