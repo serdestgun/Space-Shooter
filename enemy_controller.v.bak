@@ -1,0 +1,74 @@
+module enemy_controller(
+    input clk,
+    input reset,
+    output reg [3:0] enemy_positions [0:7],
+    output reg [3:0] enemy_types [0:7],
+    output reg [3:0] enemy_health [0:7],
+    input [3:0] spaceship_angle,
+    input [1:0] shooting_mode,
+    output reg [15:0] score
+);
+
+    // Initial values for enemy positions, types, and health
+    integer i;
+    initial begin
+        for (i = 0; i < 8; i = i + 1) begin
+            enemy_positions[i] = i * 2; // Example starting positions
+            enemy_types[i] = (i % 3) + 1; // Assign types 1, 2, 3
+            enemy_health[i] = (i % 3) + 1; // Example health values
+        end
+    end
+
+    // Enemy movement and spawning logic
+    always @(posedge clk or posedge reset) begin
+        if (reset) begin
+            for (i = 0; i < 8; i = i + 1) begin
+                enemy_positions[i] <= i * 2; // Example reset positions
+                enemy_types[i] <= (i % 3) + 1; // Reset types
+                enemy_health[i] <= (i % 3) + 1; // Reset health
+            end
+            score <= 0;
+        end else begin
+            for (i = 0; i < 8; i = i + 1) begin
+                if (enemy_health[i] > 0) begin
+                    // Move enemies towards the center
+                    if (enemy_positions[i] > 0) enemy_positions[i] = enemy_positions[i] - 1;
+                end else begin
+                    // Respawn enemy if health is 0
+                    enemy_positions[i] <= 15; // Example respawn position
+                    enemy_types[i] <= (enemy_types[i] % 3) + 1; // Cycle types
+                    enemy_health[i] <= (enemy_health[i] % 3) + 1; // Reset health
+                end
+            end
+        end
+    end
+
+    // Handle projectile firing and enemy collision
+    task fire_projectile;
+        input [3:0] angle;
+        input [1:0] mode;
+        integer j;
+        begin
+            for (j = 0; j < 8; j = j + 1) begin
+                if (enemy_health[j] > 0) begin
+                    if (mode == 2'b00) begin
+                        // Shooting mode 1: wider spray
+                        if (angle == enemy_positions[j] || 
+                            angle + 4 == enemy_positions[j] ||
+                            angle - 4 == enemy_positions[j]) begin
+                            enemy_health[j] = enemy_health[j] - 1;
+                            if (enemy_health[j] == 0) score = score + 10;
+                        end
+                    end else if (mode == 2'b01) begin
+                        // Shooting mode 2: narrower spray
+                        if (angle == enemy_positions[j]) begin
+                            enemy_health[j] = enemy_health[j] - 2;
+                            if (enemy_health[j] == 0) score = score + 10;
+                        end
+                    end
+                end
+            end
+        end
+    endtask
+
+endmodule

@@ -1,0 +1,127 @@
+module vga_controller(
+    input clk,
+    input reset,
+    output reg hsync,
+    output reg vsync,
+    output reg [3:0] red,
+    output reg [3:0] green,
+    output reg [3:0] blue,
+    input [3:0] spaceship_angle,
+    input [3:0] enemy_positions [0:7],
+    input [3:0] enemy_types [0:7],
+    input [3:0] enemy_health [0:7]
+);
+
+    // VGA timing parameters
+    parameter H_VISIBLE_AREA = 640;
+    parameter H_FRONT_PORCH = 16;
+    parameter H_SYNC_PULSE = 96;
+    parameter H_BACK_PORCH = 48;
+    parameter H_TOTAL = 800;
+    parameter V_VISIBLE_AREA = 480;
+    parameter V_FRONT_PORCH = 10;
+    parameter V_SYNC_PULSE = 2;
+    parameter V_BACK_PORCH = 33;
+    parameter V_TOTAL = 525;
+
+    reg [9:0] h_count = 0;
+    reg [9:0] v_count = 0;
+
+    // Spaceship parameters
+    parameter SPACESHIP_SIZE = 10;
+    wire [9:0] spaceship_x = 320; // Fixed X position (center of the screen)
+    wire [9:0] spaceship_y = 240; // Fixed Y position (center of the screen)
+
+    // Enemy parameters
+    parameter ENEMY_SIZE = 8;
+
+    // Generate hsync and vsync signals
+    always @(posedge clk or posedge reset) begin
+        if (reset) begin
+            h_count <= 0;
+            v_count <= 0;
+            hsync <= 1;
+            vsync <= 1;
+        end else begin
+            // Horizontal counter
+            if (h_count == H_TOTAL - 1) begin
+                h_count <= 0;
+                // Vertical counter
+                if (v_count == V_TOTAL - 1) begin
+                    v_count <= 0;
+                end else begin
+                    v_count <= v_count + 1;
+                end
+            end else begin
+                h_count <= h_count + 1;
+            end
+
+            // Hsync pulse
+            if (h_count >= H_VISIBLE_AREA + H_FRONT_PORCH && h_count < H_VISIBLE_AREA + H_FRONT_PORCH + H_SYNC_PULSE) begin
+                hsync <= 0;
+            end else begin
+                hsync <= 1;
+            end
+
+            // Vsync pulse
+            if (v_count >= V_VISIBLE_AREA + V_FRONT_PORCH && v_count < V_VISIBLE_AREA + V_FRONT_PORCH + V_SYNC_PULSE) begin
+                vsync <= 0;
+            end else begin
+                vsync <= 1;
+            end
+        end
+    end
+
+    // Display logic for spaceship and enemies
+    always @(posedge clk) begin
+        if (h_count < H_VISIBLE_AREA && v_count < V_VISIBLE_AREA) begin
+            // Draw spaceship
+            if ((h_count >= spaceship_x - SPACESHIP_SIZE && h_count <= spaceship_x + SPACESHIP_SIZE) &&
+                (v_count >= spaceship_y - SPACESHIP_SIZE && v_count <= spaceship_y + SPACESHIP_SIZE)) begin
+                red <= 4'b1111;
+                green <= 4'b0000;
+                blue <= 4'b0000;
+            end
+            // Draw enemies
+            else begin
+                integer i;
+                reg [9:0] enemy_x, enemy_y;
+                for (i = 0; i < 8; i = i + 1) begin
+                    // Calculate enemy position based on angle and distance from the center
+                    enemy_x = 320 + (enemy_positions[i] * $cos(enemy_positions[i] * 22.5 * 3.14159265 / 180));
+                    enemy_y = 240 + (enemy_positions[i] * $sin(enemy_positions[i] * 22.5 * 3.14159265 / 180));
+                    if ((h_count >= enemy_x - ENEMY_SIZE && h_count <= enemy_x + ENEMY_SIZE) &&
+                        (v_count >= enemy_y - ENEMY_SIZE && v_count <= enemy_y + ENEMY_SIZE)) begin
+                        case (enemy_types[i])
+                            1: begin
+                                red <= 4'b0000;
+                                green <= 4'b1111;
+                                blue <= 4'b0000;
+                            end
+                            2: begin
+                                red <= 4'b0000;
+                                green <= 4'b0000;
+                                blue <= 4'b1111;
+                            end
+                            3: begin
+                                red <= 4'b1111;
+                                green <= 4'b1111;
+                                blue <= 4'b0000;
+                            end
+                            default: begin
+                                red <= 4'b0000;
+                                green <= 4'b0000;
+                                blue <= 4'b0000;
+                            end
+                        endcase
+                    end
+                end
+            end
+        end else begin
+            red <= 4'b0000;
+            green <= 4'b0000;
+            blue <= 4'b0000;
+        end
+    end
+
+endmodule

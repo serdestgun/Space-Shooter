@@ -1,0 +1,55 @@
+module score_display(
+    input clk,
+    input reset,
+    input [15:0] score,
+    output reg [3:0] an,
+    output reg [6:0] seg
+);
+
+    reg [3:0] digit;
+    reg [1:0] digit_select;
+
+    // Multiplexing for 4-digit 7-segment display
+    always @(posedge clk or posedge reset) begin
+        if (reset) begin
+            digit_select <= 0;
+        end else begin
+            digit_select <= digit_select + 1;
+        end
+    end
+
+    // Select digit to display
+    always @(*) begin
+        case (digit_select)
+            2'b00: digit = score[3:0];
+            2'b01: digit = score[7:4];
+            2'b10: digit = score[11:8];
+            2'b11: digit = score[15:12];
+            default: digit = 4'b0000;
+        endcase
+    end
+
+    // 7-segment display decoder
+    always @(*) begin
+        case (digit)
+            4'b0000: seg = 7'b1000000;
+            4'b0001: seg = 7'b1111001;
+            4'b0010: seg = 7'b0100100;
+            4'b0011: seg = 7'b0110000;
+            4'b0100: seg = 7'b0011001;
+            4'b0101: seg = 7'b0010010;
+            4'b0110: seg = 7'b0000010;
+            4'b0111: seg = 7'b1111000;
+            4'b1000: seg = 7'b0000000;
+            4'b1001: seg = 7'b0010000;
+            default: seg = 7'b1111111;
+        endcase
+    end
+
+    // Anode control
+    always @(*) begin
+        an = 4'b1111;
+        an[digit_select] = 0;
+    end
+
+endmodule
